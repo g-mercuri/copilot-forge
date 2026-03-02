@@ -11,6 +11,51 @@ Auto-discovers, installs, validates, and self-improves GitHub Copilot agents, sk
 
 ---
 
+## ⚡ Use on any project — 3 steps
+
+CopilotForge installs **once** and then works across all your projects. You do not need to clone or copy anything into each project.
+
+**Step 1 — Clone and build (one time only)**
+
+```bash
+git clone https://github.com/g-mercuri/copilot-forge.git ~/copilot-forge
+cd ~/copilot-forge/mcp-server && npm install && npm run build
+```
+
+**Step 2 — Register the MCP server globally in VS Code**
+
+Open the VS Code command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) → **"MCP: Edit User Configuration"** and add:
+
+```json
+{
+  "servers": {
+    "copilot-forge": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/absolute/path/to/copilot-forge/mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+> Replace `/absolute/path/to/copilot-forge` with the actual path where you cloned the repo.
+
+**Step 3 — Open any project and run in Copilot Chat (Agent Mode)**
+
+```
+Generate instructions for this project
+```
+
+Or run the full autopilot:
+
+```
+/autopilot-improve
+```
+
+That's it. CopilotForge reads your current workspace, analyzes the codebase, and generates or installs the right Copilot setup for it.
+
+---
+
 ## 💡 The Pitch
 
 **What if your AI coding assistant could make itself smarter?**
@@ -191,40 +236,32 @@ The validator caught a bug: `nodejs-javascript-vitest.instructions.md` had `appl
 
 ## 🚀 Quick Start
 
-### Option A: Forge Init (recommended — one command, full setup)
+> **New here?** See [⚡ Use on any project](#-use-on-any-project--3-steps) at the top — it's the fastest path.
 
-1. **Clone** this repo or copy `.github/` into your project
-2. **Build** the MCP server:
-   ```bash
-   cd mcp-server && npm install && npm run build
-   ```
-3. **Open VS Code** — the MCP server auto-starts via `.vscode/mcp.json`
-4. **Run** in Copilot Chat:
-   ```
-   /forge-init
-   ```
-   This will analyze your codebase, generate custom instructions, score your setup, and recommend improvements — all in one shot.
+### Available slash commands
 
-### Option B: Autopilot (iterative improvement)
+| Command | Use Case |
+|---------|----------|
+| `/forge-init` | ⚡ One-command full setup (recommended) |
+| `/discover-for-new-project` | 🆕 Full setup for new projects |
+| `/discover-for-refactoring` | 🔄 Find gaps in existing setup |
+| `/autopilot-improve` | 🔥 Iterative self-improvement loop |
 
-1. **Clone** this repo or copy `.github/` into your project
-2. **Build** the MCP server:
-   ```bash
-   cd mcp-server && npm install && npm run build
-   ```
-3. **Open VS Code** — the MCP server auto-starts via `.vscode/mcp.json`
-4. **Run** in Copilot Chat:
-   ```
-   /autopilot-improve
-   ```
+### Option A: Forge Init (one command, full setup)
+
+After completing the 3-step setup above, open your project in VS Code and run in Copilot Chat (Agent Mode):
+
+```
+/forge-init
+```
+
+This analyzes your codebase, generates custom instructions, scores your setup, and recommends improvements — all in one shot.
 
 ### Option B: Autopilot (iterative improvement)
 
-1. **Build** the MCP server (if not already done)
-2. **Run** in Copilot Chat:
-   ```
-   /autopilot-improve
-   ```
+```
+/autopilot-improve
+```
 
 ### Option C: One-shot discovery
 
@@ -234,15 +271,6 @@ Find the best skills and MCP servers for this project
 ```
 
 Copilot calls `recommend_skills`, which runs `analyze_project`, `search_copilot_assets`, and `search_mcp_servers` in parallel, then deduplicates and ranks the results.
-
-### Option D: Slash commands
-
-| Command | Use Case |
-|---------|----------|
-| `/forge-init` | ⚡ One-command full setup (recommended) |
-| `/discover-for-new-project` | 🆕 Full setup for new projects |
-| `/discover-for-refactoring` | 🔄 Find gaps in existing setup |
-| `/autopilot-improve` | 🔥 Iterative self-improvement loop |
 
 ---
 
