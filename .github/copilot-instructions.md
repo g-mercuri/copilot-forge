@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-MCP (Model Context Protocol) server that auto-discovers GitHub Copilot agents, skills, prompts, instructions, and MCP servers. The server fetches catalogs from `github/awesome-copilot`, the MCP registry, and GitHub search, then installs assets into a project's `.github/` folder.
+MCP (Model Context Protocol) server that provides tools for analyzing codebases, generating Copilot instructions, scoring setups, and safely installing assets. Discovery of skills/prompts/agents is delegated to the LLM via skills and prompts that read catalogs directly.
 
 ## Language & Runtime
 
@@ -18,7 +18,7 @@ All local imports **must** use the `.js` extension (required by NodeNext resolut
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { validateUrl } from "../security/trusted-sources.js";
-import type { CatalogEntry } from "../types.js";
+import type { ProjectProfile } from "../types.js";
 ```
 
 Never use extensionless imports for local files.
@@ -113,7 +113,8 @@ mcp-server/
     types.ts              # Shared TypeScript interfaces
     tools/                # One file per MCP tool (registerXxxTool pattern)
     security/             # URL validation, content scanning, path safety, audit
-    cache/                # Catalog caching logic
+    core/                 # Scoring engine, git operations
+    analyzers/            # Code pattern detection
     resources.ts          # MCP resource registration
   tests/
     unit/                 # Unit tests for individual modules
