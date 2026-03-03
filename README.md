@@ -1,15 +1,91 @@
 # 🔥 CopilotForge
 
-> **One command to set up GitHub Copilot for any project.**
+> **Set up GitHub Copilot properly for any project — in one command.**
 
-Analyzes your codebase, discovers the best Copilot assets for your stack, and installs them — instructions, skills, agents, prompts, and MCP servers.
+Without configuration, Copilot doesn't know your stack, your conventions, or your team's patterns. CopilotForge fixes that: it analyzes your codebase, finds the right instructions, agents, and skills for your stack, and installs them.
 
 [![GitHub Copilot](https://img.shields.io/badge/GitHub%20Copilot-Agent%20Mode-blue?logo=github)](https://docs.github.com/en/copilot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
-## ⚡ Setup — 3 Steps
+## What it does
+
+Copilot works best when it understands your project. That means having:
+
+- **`copilot-instructions.md`** — teaches Copilot your naming conventions, error handling patterns, testing approach, and architecture
+- **Instructions** — stack-specific best practices (TypeScript strict mode, React patterns, pytest conventions…)
+- **Agents & skills** — reusable workflows (code review, conventional commits, test generation…)
+- **Prompts** — quick commands tailored to your workflow
+
+CopilotForge discovers and installs all of these. It ships a **curated asset index** (no runtime fetching) pre-vetted from [github/awesome-copilot](https://github.com/github/awesome-copilot), the MCP Registry, and community repos.
+
+---
+
+## Commands
+
+### `/forge` — Full setup for your project
+
+Scans your project, scores your current Copilot setup, shows what's missing, and installs what you choose.
+
+```
+🔬 Analyzing your project...
+   TypeScript | React | Vitest | GitHub Actions | Docker
+
+📊 Current Copilot score: 2/10 (F)
+
+🔍 Found 8 relevant assets:
+
+  # │ Type        │ Name                      │ Trust
+  1 │ instruction │ typescript-strict          │ ✅
+  2 │ instruction │ react-patterns             │ ✅
+  3 │ instruction │ vitest-testing             │ ✅
+  4 │ agent       │ code-reviewer              │ ✅
+  5 │ skill       │ conventional-commit        │ ✅
+  6 │ mcp-server  │ github-mcp-server          │ ✅
+  7 │ prompt      │ create-test                │ ✅
+  8 │ instruction │ docker-best-practices      │ ✅
+
+Which ones to install? (all / numbers / none)
+> all
+
+✅ 8 assets installed. Score: 9/10 (A)
+```
+
+After each install, `/forge` shows a before/after score comparison and asks if you want to continue improving. Stops automatically at 8+ or when nothing new is found.
+
+### `/discover` — Find assets by description
+
+Search the curated index by describing what you want, without scanning your project.
+
+```
+/discover EntraID authentication
+/discover container deployment with Kubernetes
+/discover React testing patterns
+```
+
+Works great when you know what you need but not which asset provides it.
+
+### Generate instructions
+
+The highest-impact single action. Scans your codebase and generates a `copilot-instructions.md` tailored to your project:
+
+| Detects | Examples |
+|---------|---------|
+| Naming conventions | camelCase vars, kebab-case files, PascalCase types |
+| Error handling | try-catch vs Result types, custom error classes |
+| Import style | Named vs default, file extensions, sorted imports |
+| Testing patterns | Framework, describe-it vs flat, mocking approach |
+| Architecture | Layer-based vs feature-based, directory structure |
+| Code style | Semicolons, quotes, indentation |
+
+```
+Generate instructions for this project
+```
+
+---
+
+## Setup
 
 **Step 1 — Clone and build (one time)**
 
@@ -18,7 +94,7 @@ git clone https://github.com/g-mercuri/copilot-forge.git ~/copilot-forge
 cd ~/copilot-forge/mcp-server && npm install && npm run build
 ```
 
-**Step 2 — Register globally in VS Code**
+**Step 2 — Register as a global MCP server in VS Code**
 
 `Ctrl+Shift+P` → **"MCP: Edit User Configuration"** → add:
 
@@ -40,177 +116,77 @@ cd ~/copilot-forge/mcp-server && npm install && npm run build
 /forge
 ```
 
-That's it. CopilotForge scans your project, finds the best assets, and asks what to install.
-
 ---
 
-## 🎯 What Happens When You Run `/forge`
+## Scoring
 
-```
-🔬 Analyzing your project...
-   TypeScript | React | Vitest | GitHub Actions | Docker
-
-📊 Current Copilot score: 2/10 (F)
-
-🔍 Found 8 relevant assets for your stack:
-
-  # │ Type        │ Name                      │ Trust
-  1 │ instruction │ typescript-strict          │ ✅
-  2 │ instruction │ react-patterns             │ ✅
-  3 │ instruction │ vitest-testing             │ ✅
-  4 │ agent       │ code-reviewer              │ ✅
-  5 │ skill       │ conventional-commit        │ ✅
-  6 │ mcp-server  │ github-mcp-server          │ ✅
-  7 │ prompt      │ create-test                │ ✅
-  8 │ instruction │ docker-best-practices      │ ✅
-
-Which ones to install? (all / numbers / none)
-> 1, 2, 3, 4
-
-✅ 4 assets installed. Score: 7/10 (B)
-```
-
----
-
-## 🛠️ MCP Tools
-
-| Tool | R/W | Description |
-|------|-----|-------------|
-| `discover_assets` 🔍 | Read | Analyze project → match curated index → return ranked recommendations |
-| `generate_instructions` 🧬 | **Write** | Deep-scan codebase → generate project-specific `copilot-instructions.md` |
-| `install_asset` 📦 | **Write** | Install one or many assets with preview → confirm flow (batch support) |
-| `score_setup` 📊 | Read | Score Copilot setup quality (0-10) with letter grade and gaps |
-| `analyze_project` 🔬 | Read | Deep project scan (languages, frameworks, dependencies, customizations) |
-| `apply_org_standards` 🏢 | **Write** | Apply org-wide standards from a `.github` repo or generate defaults |
-
-### How Discovery Works
-
-CopilotForge ships a **curated asset index** inside the MCP server. No runtime fetching, no Docker dependencies, no `#fetch` calls that break.
-
-The index maps tech stacks to high-quality assets from multiple sources:
-- [github/awesome-copilot](https://github.com/github/awesome-copilot)
-- Community repositories
-- [MCP Registry](https://registry.modelcontextprotocol.io)
-
-All entries are pre-vetted for quality. The index is updated with releases.
-
-### Covered Tech Stacks
-
-TypeScript, JavaScript, Python, Go, Rust, Java, Kotlin, C#/.NET, Ruby, PHP, Swift, React, Next.js, Vue, Angular, Svelte, Django, FastAPI, Spring Boot, ASP.NET, Rails, Laravel, Docker, Kubernetes, Terraform, GitHub Actions, AWS, Azure, GCP, Vitest, Jest, pytest, and more.
-
----
-
-## 🧬 Generate Instructions
-
-The most impactful single feature. Scans your codebase and generates a `copilot-instructions.md` that teaches Copilot your project's conventions:
-
-| Detects | Examples |
-|---------|---------|
-| Naming conventions | camelCase vars, kebab-case files, PascalCase types |
-| Error handling | try-catch vs Result types, custom error classes |
-| Import style | Named vs default, file extensions, sorted imports |
-| Testing patterns | Framework, describe-it vs flat, mocking approach |
-| Architecture | Layer-based vs feature-based, directory structure |
-| Code style | Semicolons, quotes, indentation |
-
-```
-Generate instructions for this project
-```
-
----
-
-## 📊 Score Setup
-
-Gamified evaluation of your Copilot setup — score, letter grade, and prioritized quick wins.
+CopilotForge scores your Copilot setup from 0 to 10 and gives a letter grade. Use it to understand gaps and track progress.
 
 | Category | Points |
 |----------|--------|
-| copilot-instructions.md | 0-2 |
-| Coding standards | 0-1 |
-| Error handling | 0-1 |
-| Testing practices | 0-1 |
-| Language instructions | 0-1 |
-| Security/governance | 0-1 |
-| Prompts | 0-1 |
-| Agents/skills | 0-1 |
-| Commit conventions | 0-1 |
+| copilot-instructions.md | 0–2 |
+| Coding standards | 0–1 |
+| Error handling | 0–1 |
+| Testing practices | 0–1 |
+| Language instructions | 0–1 |
+| Security/governance | 0–1 |
+| Prompts | 0–1 |
+| Agents/skills | 0–1 |
+| Commit conventions | 0–1 |
 
 ---
 
-## 🏢 Enterprise: Org Standards
+## Enterprise: Org Standards
 
-`apply_org_standards` applies org-wide Copilot standards from an org's `.github` repo. If no org source is given, generates defaults from detected codebase patterns.
-
----
-
-## 🔄 Iterative Improvement
-
-Run the `/forge` prompt repeatedly or use the `forge-improve` skill to iterate:
-
-```
-DISCOVER → INSTALL → VALIDATE → [repeat]
-```
-
-Each iteration improves the score. Stops at 8+ or when no more improvements are found.
+`apply_org_standards` pushes org-wide Copilot standards from your org's `.github` repo to any project. If no source is configured, it generates sensible defaults from detected codebase patterns.
 
 ---
 
-## 🔒 Security
+## Security
 
-Every asset carries a trust badge:
+Every asset in the index carries a trust badge:
 
 | Badge | Level | Sources |
 |-------|-------|---------|
 | ✅ Verified | High | `github/awesome-copilot`, `microsoft/*` |
 | ⚠️ Community | Medium | GitHub repos with reasonable activity |
 
-Protection: URL allowlist, SSRF blocking, preview-by-default installs, content scanning, path traversal prevention, audit log at `~/.copilot-forge/audit.jsonl`.
+All installs are preview-by-default. Additional protections: URL allowlist, SSRF blocking, content scanning, path traversal prevention, audit log at `~/.copilot-forge/audit.jsonl`.
 
 ---
 
-## 🏗️ Architecture
+## Reference
 
-```
-MCP Tools (6):
-  discover_assets       — Analyze + curated index match + rank
-  generate_instructions — Auto-generate coding instructions
-  install_asset         — Safe batch installer
-  score_setup           — Setup quality scoring
-  analyze_project       — Deep project scan
-  apply_org_standards   — Org-wide consistency
+### MCP Tools
 
-Skills (3):
-  forge-improve         — Iterative improvement loop
-  agent-governance      — AI safety patterns
-  conventional-commit   — Commit standards
+| Tool | Description |
+|------|-------------|
+| `discover_assets` | Analyze project stack + keyword search → ranked asset recommendations |
+| `generate_instructions` | Scan codebase → generate `copilot-instructions.md` |
+| `install_asset` | Safe batch installer with preview → confirm flow |
+| `score_setup` | Score Copilot setup quality (0–10) with gaps and quick wins |
+| `analyze_project` | Deep project scan (languages, frameworks, dependencies) |
+| `apply_org_standards` | Apply org-wide standards from a `.github` repo |
 
-Prompt (1):
-  /forge                — One-command full setup
+### Covered stacks
 
-Agent (1):
-  copilot-forge         — Setup orchestrator
-```
+TypeScript, JavaScript, Python, Go, Rust, Java, Kotlin, C#/.NET, Ruby, PHP, Swift, React, Next.js, Vue, Angular, Svelte, Django, FastAPI, Spring Boot, ASP.NET, Rails, Laravel, Docker, Kubernetes, Terraform, GitHub Actions, AWS, Azure, GCP, Vitest, Jest, pytest, and more.
 
-### File Structure
+### File structure
 
 ```
 .github/
 ├── agents/copilot-forge.agent.md
-├── prompts/forge.prompt.md
+├── prompts/
+│   ├── forge.prompt.md        # /forge command
+│   └── discover.prompt.md     # /discover command
 └── skills/
-    ├── forge-improve/
     ├── agent-governance/
     └── conventional-commit/
 
 mcp-server/src/
 ├── data/asset-index.ts          # Curated asset catalog
-├── tools/
-│   ├── discover-assets.ts       # Analyze + match + rank
-│   ├── generate-instructions.ts # Instruction generator
-│   ├── install-asset.ts         # Safe batch installer
-│   ├── score-setup.ts           # Setup scoring
-│   ├── analyze-project.ts       # Project scanner
-│   └── apply-org-standards.ts   # Org standards
+├── tools/                       # One file per MCP tool
 ├── security/                    # URL validation, content scanning, audit
 ├── core/                        # Scoring engine, git operations
 └── analyzers/                   # Code pattern detection
@@ -218,7 +194,7 @@ mcp-server/src/
 
 ---
 
-## 🧪 Testing
+## Development
 
 ```bash
 cd mcp-server
@@ -229,18 +205,18 @@ npm run lint     # eslint
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-- 🐛 **Report bugs** — Open an issue
-- 💡 **Suggest features** — New asset index entries, workflow ideas
-- 🔧 **Submit PRs** — Improve tools, add curated assets, fix bugs
-- 📖 **Improve docs** — Clearer instructions, more examples
+- 🐛 **Bugs** — Open an issue
+- 💡 **New assets** — Suggest additions to the curated index
+- 🔧 **PRs** — Improve tools, add curated assets, fix bugs
+- 📖 **Docs** — Clearer instructions, more examples
 
 Please open an issue before submitting large changes.
 
 ---
 
-## 📄 License
+## License
 
 [MIT License](LICENSE)
 
@@ -250,3 +226,4 @@ Please open an issue before submitting large changes.
   <strong>🔥 CopilotForge</strong> — One command to set up Copilot for any project<br>
   Built with ❤️ for the GitHub Copilot community
 </p>
+

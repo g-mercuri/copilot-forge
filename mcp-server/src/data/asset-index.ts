@@ -294,7 +294,7 @@ export const CURATED_ASSETS: CuratedAsset[] = [
     name: "docker-best-practices",
     type: "instruction",
     description:
-      "Dockerfile patterns: multi-stage builds, layer caching, security, compose best practices",
+      "Dockerfile and container patterns: multi-stage builds, layer caching, security, compose best practices",
     source_url:
       "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/devops/docker.instructions.md",
     tags: ["Docker"],
@@ -470,4 +470,42 @@ export function filterInstalled(
   installedNames: Set<string>,
 ): CuratedAsset[] {
   return assets.filter((a) => !installedNames.has(a.name));
+}
+
+const STOP_WORDS = new Set([
+  "a", "an", "the", "to", "for", "with", "and", "or", "in", "on", "of",
+  "how", "implement", "add", "use", "using", "setup", "set", "up", "get",
+  "create", "make", "build", "write", "configure", "enable", "integrate",
+]);
+
+export function searchAssets(query: string): CuratedAsset[] {
+  const words = query
+    .toLowerCase()
+    .split(/\W+/)
+    .filter((w) => w.length > 1 && !STOP_WORDS.has(w));
+
+  if (words.length === 0) return [];
+
+  const scored = CURATED_ASSETS.map((asset) => {
+    const haystack = [
+      asset.name,
+      asset.description,
+      ...asset.tags,
+    ].join(" ").toLowerCase();
+
+    const score = words.reduce((acc, word) => {
+      return acc + (haystack.includes(word) ? 1 : 0);
+    }, 0);
+
+    return { asset, score };
+  });
+
+  return scored
+    .filter((s) => s.score > 0)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const tierOrder = { verified: 0, community: 1 };
+      return tierOrder[a.asset.quality_tier] - tierOrder[b.asset.quality_tier];
+    })
+    .map((s) => s.asset);
 }

@@ -5,6 +5,7 @@ import { join, extname } from "node:path";
 import {
   matchAssets,
   filterInstalled,
+  searchAssets,
   type CuratedAsset,
 } from "../data/asset-index.js";
 import { computeScore, formatScoreReport } from "../core/scorer.js";
@@ -299,9 +300,10 @@ function formatRecommendations(assets: CuratedAsset[]): string {
 export function registerDiscoverAssetsTool(server: McpServer): void {
   server.tool(
     "discover_assets",
-    "Analyze a project, score its Copilot setup, and recommend relevant assets from the curated index. Returns stack detection, current score, and ranked recommendations — all in one call.",
+    "Analyze a project and recommend relevant Copilot assets. Supports two modes: stack-based discovery (provide 'path') and query-based search (provide 'query'). Both can be combined.",
     {
-      path: z.string().describe("Absolute path to the project root directory"),
+      path: z.string().optional().describe("Absolute path to the project root directory (optional when query is provided)"),
+      query: z.string().optional().describe("Natural language description of what you want to implement or find, e.g. 'EntraID authentication' or 'container deployment'"),
     },
     {
       readOnlyHint: true,
@@ -309,64 +311,100 @@ export function registerDiscoverAssetsTool(server: McpServer): void {
       openWorldHint: false,
       idempotentHint: true,
     },
-    async ({ path: projectPath }) => {
-      if (!existsSync(projectPath)) {
+    async ({ path: projectPath, query }) => {
+      if (!projectPath && !query) {
         return {
           content: [
             {
               type: "text" as const,
-              text: `Error: Path does not exist: ${projectPath}`,
+              text: "Error: Provide at least one of 'path' (project directory) or 'query' (what you want to find).",
             },
           ],
         };
       }
 
       try {
-        const files = collectFiles(projectPath, 0, 4);
+        if (projectPath && !existsSync(projectPath)) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Error: Path does not exist: ${projectPath}`,
+              },
+            ],
+          };
+        }
 
-        const languages = detectLanguages(files);
-        const frameworks = detectFrameworks(projectPath, files);
-        const cicd = detectCiCd(projectPath);
-        const cloud = detectCloud(projectPath, files);
-        const hasDocker = detectDocker(projectPath);
+        let stackSummary = "";
+        let scoreReport = "";
+        let recommendations: CuratedAsset[] = [];
 
-        const extraTags: string[] = [];
-        if (hasDocker) extraTags.push("Docker");
+        if (projectPath) {
+          const files = collectFiles(projectPath, 0, 4);
 
-        const allFrameworks = [...frameworks, ...extraTags];
+          const languages = detectLanguages(files);
+          const frameworks = detectFrameworks(projectPath, files);
+          const cicd = detectCiCd(projectPath);
+          const cloud = detectCloud(projectPath, files);
+          const hasDocker = detectDocker(projectPath);
 
-        const matched = matchAssets(languages, allFrameworks, cicd, cloud);
+          const extraTags: string[] = [];
+          if (hasDocker) extraTags.push("Docker");
 
-        const installed = getInstalledAssetNames(projectPath);
-        const recommendations = filterInstalled(matched, installed);
+          const allFrameworks = [...frameworks, ...extraTags];
 
-        const scoreResult = computeScore(projectPath);
-        const scoreReport = formatScoreReport(scoreResult);
+          const matched = matchAssets(languages, allFrameworks, cicd, cloud);
+          const installed = getInstalledAssetNames(projectPath);
+          recommendations = filterInstalled(matched, installed);
 
-        const stackSummary = [
-          languages.length > 0 ? `Languages: ${languages.join(", ")}` : "",
-          allFrameworks.length > 0 ? `Frameworks: ${allFrameworks.join(", ")}` : "",
-          cicd.length > 0 ? `CI/CD: ${cicd.join(", ")}` : "",
-          cloud.length > 0 ? `Cloud: ${cloud.join(", ")}` : "",
-          installed.size > 0 ? `Already installed: ${[...installed].join(", ")}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n");
+          const scoreResult = computeScore(projectPath);
+          scoreReport = formatScoreReport(scoreResult);
 
-        const output = [
-          `# Discovery Results for ${projectPath}`,
+          stackSummary = [
+            languages.length > 0 ? `Languages: ${languages.join(", ")}` : "",
+            allFrameworks.length > 0 ? `Frameworks: ${allFrameworks.join(", ")}` : "",
+            cicd.length > 0 ? `CI/CD: ${cicd.join(", ")}` : "",
+            cloud.length > 0 ? `Cloud: ${cloud.join(", ")}` : "",
+            installed.size > 0 ? `Already installed: ${[...installed].join(", ")}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n");
+        }
+
+        if (query) {
+          const queryResults = searchAssets(query);
+          if (projectPath) {
+            const installed = getInstalledAssetNames(projectPath);
+            const filtered = filterInstalled(queryResults, installed);
+            const stackNames = new Set(recommendations.map((a) => a.name));
+            const extra = filtered.filter((a) => !stackNames.has(a.name));
+            recommendations = [...recommendations, ...extra];
+          } else {
+            recommendations = queryResults;
+          }
+        }
+
+        const sections: string[] = [
+          `# Discovery Results${projectPath ? ` for ${projectPath}` : ""}`,
           "",
-          "## Detected Stack",
-          stackSummary,
-          "",
-          scoreReport,
-          "",
-          "## Recommendations",
-          formatRecommendations(recommendations),
-        ].join("\n");
+        ];
+
+        if (query) {
+          sections.push(`## Query: "${query}"`, "");
+        }
+
+        if (stackSummary) {
+          sections.push("## Detected Stack", stackSummary, "");
+        }
+
+        if (scoreReport) {
+          sections.push(scoreReport, "");
+        }
+
+        sections.push("## Recommendations", formatRecommendations(recommendations));
 
         return {
-          content: [{ type: "text" as const, text: output }],
+          content: [{ type: "text" as const, text: sections.join("\n") }],
         };
       } catch (error) {
         const message =

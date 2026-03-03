@@ -3,6 +3,7 @@ import {
   CURATED_ASSETS,
   matchAssets,
   filterInstalled,
+  searchAssets,
 } from "../../src/data/asset-index.js";
 
 describe("asset-index", () => {
@@ -112,6 +113,49 @@ describe("asset-index", () => {
       const allNames = new Set(assets.map((a) => a.name));
       const filtered = filterInstalled(assets, allNames);
       expect(filtered).toEqual([]);
+    });
+  });
+
+  describe("searchAssets", () => {
+    it("returns assets matching authentication query", () => {
+      const results = searchAssets("authentication");
+      expect(results.length).toBeGreaterThan(0);
+      expect(results.some((a) => a.description.toLowerCase().includes("auth"))).toBe(true);
+    });
+
+    it("returns docker assets for container query", () => {
+      const results = searchAssets("container deployment");
+      expect(results.some((a) => a.name === "docker-best-practices")).toBe(true);
+    });
+
+    it("returns testing assets for testing query", () => {
+      const results = searchAssets("testing patterns");
+      expect(results.some((a) => a.name.includes("testing"))).toBe(true);
+    });
+
+    it("filters out stop words and still returns results", () => {
+      const results = searchAssets("implement EntraID authentication");
+      expect(results.length).toBeGreaterThan(0);
+    });
+
+    it("returns empty for unrelated query", () => {
+      const results = searchAssets("zzzznotarealterm99999");
+      expect(results).toEqual([]);
+    });
+
+    it("returns empty for query with only stop words", () => {
+      const results = searchAssets("implement add use set up");
+      expect(results).toEqual([]);
+    });
+
+    it("sorts verified assets before community for same score", () => {
+      // "mcp" matches github-mcp-server (verified) and docker-mcp (community) with equal score
+      const results = searchAssets("mcp");
+      const verifiedIdx = results.findIndex((a) => a.quality_tier === "verified" && a.name.includes("mcp"));
+      const communityIdx = results.findIndex((a) => a.quality_tier === "community" && a.name.includes("mcp"));
+      if (verifiedIdx >= 0 && communityIdx >= 0) {
+        expect(verifiedIdx).toBeLessThan(communityIdx);
+      }
     });
   });
 });
